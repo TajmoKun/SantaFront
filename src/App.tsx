@@ -10,7 +10,7 @@ function App(){
     </nav>
     <Routes>
       <Route path='/' element={<EntryList/>}/>
-      <Route path='/secretSanta' element={<WishList/>}/>
+      <Route path='/secretSanta/:gifterId/:gifteeId' element={<WishList/>}/>
     </Routes>
   </BrowserRouter>
   </>);

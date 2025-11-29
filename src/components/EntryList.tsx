@@ -5,12 +5,13 @@ interface EntryProps {
     email: string;
 }
 
-
 const EntryList = () =>{
     const [entries, setEntries] = useState<EntryProps[]>([]);
     const[name,setname] = useState("");
     const [email,setEmail] = useState("");
-
+    const [title,setTitle] = useState("");
+    const[date,setDate] = useState(Date);
+    
     const addEntry = (e: React.FormEvent) =>{
         e.preventDefault();
         if(!name || !email) return;
@@ -19,28 +20,36 @@ const EntryList = () =>{
         setEmail("");
     }
 
+    const removeEntries = () =>{
+        setEntries([]);
+    }
+
     const removeEntry = (index: number) =>{
         setEntries(entries.filter((_,i)=> i !==index));
     }; 
 
-    
     const sendInvitations = async() =>{
         try{
             if(entries.length <=2) {
                 alert('Minimum of 3 invitations are required');
                 return;
             }
-            const response = await fetch('http://localhost:5000/api/santaEventCreate',{
+            const event ={
+                eventDate: date,
+                title: title,
+                members: entries
+            }
+            const response = await fetch(`http://localhost:8080/events`,{
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(entries),
+                body: JSON.stringify(event),
             });
+            console.log(response);
             if(!response.ok) throw new Error('Failed sending invitations');
             alert('Invitations have been sent');
         }catch(error){
             alert('Faild sending invitations, Server error');
         }
-
 }
 
     return (<>
@@ -48,6 +57,22 @@ const EntryList = () =>{
         <h1 className="text-center mb-4">
             Participants list
             </h1>
+        <input 
+        value={title}
+        className="form-control mb-2 w-100"
+        type="text"
+        placeholder ="Event title"
+        onChange={e=> setTitle(e.target.value)}
+        required
+        />
+        <input 
+        value={date}
+        className="form-control mb-2 w-100"
+        type="datetime-local"
+        placeholder ="Event date"
+        onChange={e=> setDate(e.target.value)}
+        required
+        />
         <form onSubmit={addEntry} className="mb-3 w-100">
             <input value={name} className="form-control mb-2 w-100" type="text" placeholder="Participants name" onChange={e=> setname(e.target.value)}/>
             <input value={email} className="form-control mb-2 w-100" type="email" placeholder ="Participants email" onChange={e=> setEmail(e.target.value)}/>
@@ -57,7 +82,7 @@ const EntryList = () =>{
         </form>
         <ul className="list-group">
         {entries.map((entry,idx)=>(
-            <li className="list-group-item">
+            <li key={idx} className="list-group-item">
                 <span>
                     <strong>{entry.name}</strong> ({entry.email})
                 </span>
@@ -70,7 +95,8 @@ const EntryList = () =>{
         </ul>
         </div>
         <div style={{ width: "100%", maxWidth: 500, margin: "0 auto" }}>
-            <button onClick={sendInvitations} className="btn btn-success w-100">
+            <button onClick={()=>{sendInvitations(); removeEntries()
+            }} className="btn btn-success w-100" type="submit">
                 Send event invitations
             </button>
         </div>

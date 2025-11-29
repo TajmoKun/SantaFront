@@ -1,10 +1,11 @@
 import {useEffect,useState} from "react";
+import { useParams} from "react-router-dom";
 import "../style/Wishlist.css";
 
 interface WishListProps {
     id: string;
     member_id: string;
-    item: string;
+    itemName: string;
 }
 const wishlist: WishListProps[] = [
     
@@ -12,6 +13,7 @@ const wishlist: WishListProps[] = [
 
 const WishList = ()=> {
 
+    const {gifterId,gifteeId} = useParams<{gifterId: string, gifteeId: string}>();
     const [item,setItem] = useState("");
     const [giftersWishlist,setGiftersWishlist] = useState<WishListProps[]>([]);
     const [gifteesWishlist,setGifteesWishlist] = useState<WishListProps[]>([]);
@@ -19,7 +21,7 @@ const WishList = ()=> {
 
     const handleDeleteWishSubmit = async (id: string) =>{
         try{
-            const response = await fetch(`http://localhost:5000/api/wishlists/delete-${id}`,{
+            const response = await fetch(`http://localhost:8080/wishlists/${id}`,{
                 method: "DELETE",
             });
             if(!response.ok) throw new Error("Failed to deleting wish");
@@ -30,12 +32,12 @@ const WishList = ()=> {
         }
     }
 
-    const handleAddWishSubmit = async () =>{
+    const handleAddWishSubmit = async (id: string) =>{
         try{
-            const response = await fetch(`http://localhost:5000/api/wishlists/create`,{
+            const response = await fetch(`http://localhost:8080/wishlists/${id}`,{
                 method: "POST",
                 headers: {"Content-type": "application/json"},
-                body: JSON.stringify({item}),
+                body: JSON.stringify({itemName : item}),
             });
             if(!response.ok) throw new Error('Failed saving your wish');
             alert("Wish has been saved");
@@ -45,12 +47,15 @@ const WishList = ()=> {
     };
 
     useEffect(()=>{
+        if(!gifteeId || !gifterId) return;
     const fetchWishlists = async (gifterId: string, gifteeId: string) =>{
         setLoading(true);
         try{
-            const responseGifter = await fetch(`http://localhost:5000/api/wishlists/getGifters-${gifterId}`);
-            const responseGiftee = await fetch(`http://localhost:5000/api/wishlists/getGiftee-${gifteeId}`);
-            if(!responseGifter.ok || responseGiftee.ok) throw new Error('Failed getting wishlists');
+            const responseGifter = await fetch(`http://localhost:8080/wishlists/${gifterId}`);
+            const responseGiftee = await fetch(`http://localhost:8080/wishlists/${gifteeId}`);
+            if(!responseGifter.ok || !responseGiftee.ok) throw new Error(`Failed getting wishlists
+    Gifter: ${responseGifter.status} ${responseGifter.statusText}
+     Giftee: ${responseGiftee.status} ${responseGiftee.statusText}`);
             const giftersData = await responseGifter.json();
             const gifteesData = await responseGiftee.json();
             setGiftersWishlist(giftersData);
@@ -60,13 +65,9 @@ const WishList = ()=> {
         }finally{
             setLoading(false);
         }
-
     }
-    fetchWishlists("bla bla bla","bla bla bla");
-    setGiftersWishlist([{id: "5123-51210sdfgs3-gasdg-1235", member_id: "51235-sdfgsd1234275123-agsdg-asdg-2153", item:"Teemo figurine"},
-    {id: "5123sdfgsdf-5123-gasdg-1235", member_id: "51235-12351sdfg23-agsdg-asdg-2153", item:"Teemo necklase"}]);
-    setGifteesWishlist([{id: "5123-5123-525gasdg-1235", member_id: "51235-123828225123-agsdg-asdg-2153", item:"Teemo figurine"},
-    {id: "5123-5123-gasdfgsdfgssdg-1235", member_id: "51235-1235123-agsdg-asdg-2153", item:"Teemo necklase"}]);
+    fetchWishlists(gifterId,gifteeId);
+    
     },[]);
     
 
@@ -80,7 +81,7 @@ const WishList = ()=> {
         <div className="form-control mb-2 w-100">
             {gifteesWishlist.map(item =>(
                 <li className="wishlist-item "
-                    key={item.id}>{item.item}</li> 
+                    key={item.id}>{item.itemName}</li> 
                     
             ))}
         </div>
@@ -93,12 +94,17 @@ const WishList = ()=> {
         <div className="form-control mb-2 w-100">
             {giftersWishlist.map(item =>(
                 <li className="wishlist-item "
-                 key={item.id}>{item.item} <button onClick={()=>{handleDeleteWishSubmit(item.id),console.log(item)} } className="btn btn-danger btn-sm">Delete Wish</button></li> 
-                 
+                 key={item.id}>{item.itemName} <button onClick={()=>{handleDeleteWishSubmit(item.id),console.log(item)} } className="btn btn-danger btn-sm">Delete Wish</button></li>       
             ))}
         </div>
         <div>
-            <form onSubmit={handleAddWishSubmit}>
+            <form onSubmit={e => {
+                e.preventDefault();
+                if (!gifterId) {
+                    alert("No gifterId provided!");
+                    return;
+                }
+                handleAddWishSubmit(gifterId)}}>
                 <input 
                 placeholder="Your wish here..." type="text" required
                 onChange={e => setItem(e.target.value)}
