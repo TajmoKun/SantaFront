@@ -15,6 +15,10 @@ const EntryList = () =>{
     const addEntry = (e: React.FormEvent) =>{
         e.preventDefault();
         if(!name || !email) return;
+        if (entries.some(entry => entry.email === email)) {
+            alert('This email is already added!');
+            return;
+        }
         setEntries([...entries,{name,email}]);
         setname("");
         setEmail("");
@@ -27,7 +31,6 @@ const EntryList = () =>{
     const removeEntry = (index: number) =>{
         setEntries(entries.filter((_,i)=> i !==index));
     }; 
-
     const sendInvitations = async() =>{
         try{
             if(entries.length <=2) {

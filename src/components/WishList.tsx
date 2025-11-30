@@ -7,14 +7,15 @@ interface WishListProps {
     member_id: string;
     itemName: string;
 }
+
 const wishlist: WishListProps[] = [
-    
 ];
 
 const WishList = ()=> {
 
-    const {gifterId,gifteeId} = useParams<{gifterId: string, gifteeId: string}>();
+    const {memberId} = useParams<{memberId : string}>();
     const [item,setItem] = useState("");
+    const [gifteName,setGifteeName] = useState<string>("");
     const [giftersWishlist,setGiftersWishlist] = useState<WishListProps[]>([]);
     const [gifteesWishlist,setGifteesWishlist] = useState<WishListProps[]>([]);
     const [loading, setLoading] = useState(false);
@@ -41,21 +42,40 @@ const WishList = ()=> {
             });
             if(!response.ok) throw new Error('Failed saving your wish');
             alert("Wish has been saved");
+            setItem("");
+
+            const refreshResponse = await fetch(`http://localhost:8080/wishlists/${id}`)
+            if(refreshResponse.ok){
+                const data = await refreshResponse.json();
+                setGiftersWishlist(data);
+            }
         }catch(err){
             alert("Server error, failed to save wish");
         }
     };
 
     useEffect(()=>{
-        if(!gifteeId || !gifterId) return;
-    const fetchWishlists = async (gifterId: string, gifteeId: string) =>{
+        if(!memberId) return;
+    const fetchWishlists = async (memberId : string) =>{
         setLoading(true);
         try{
-            const responseGifter = await fetch(`http://localhost:8080/wishlists/${gifterId}`);
-            const responseGiftee = await fetch(`http://localhost:8080/wishlists/${gifteeId}`);
+            const assignedIdResponse = await fetch(`http://localhost:8080/members/${memberId}/assigned`);
+            if(!assignedIdResponse.ok) throw new Error(`failed to fetch asigned members id`);
+
+            const assignedMemberId = await assignedIdResponse.text(); 
+            
+            const assignedMemberResponse = await fetch(`http://localhost:8080/members/${assignedMemberId}`);
+            if(!assignedMemberResponse.ok) throw new Error(`failed to fetch assigned member`);
+            const assignedMemberData = await assignedMemberResponse.json();
+            setGifteeName(assignedMemberData.name);
+
+            const responseGifter = await fetch(`http://localhost:8080/wishlists/${memberId}`);
+            const responseGiftee = await fetch(`http://localhost:8080/wishlists/${assignedMemberId}`);
+
             if(!responseGifter.ok || !responseGiftee.ok) throw new Error(`Failed getting wishlists
-    Gifter: ${responseGifter.status} ${responseGifter.statusText}
-     Giftee: ${responseGiftee.status} ${responseGiftee.statusText}`);
+                Gifter: ${responseGifter.status} ${responseGifter.statusText}
+                Giftee: ${responseGiftee.status} ${responseGiftee.statusText}`);
+
             const giftersData = await responseGifter.json();
             const gifteesData = await responseGiftee.json();
             setGiftersWishlist(giftersData);
@@ -66,10 +86,8 @@ const WishList = ()=> {
             setLoading(false);
         }
     }
-    fetchWishlists(gifterId,gifteeId);
-    
-    },[]);
-    
+    fetchWishlists(memberId);
+    },[memberId]);
 
     if(loading) return <div>Loading ;v</div>;
 
@@ -77,16 +95,13 @@ const WishList = ()=> {
     <div>
     <div style={{ width: "100%", maxWidth: 500, margin: "0 auto" }}>
         <h2 className="text-center mb-4">
-            giftee's WishList</h2>
+            {gifteName} WishList</h2>
         <div className="form-control mb-2 w-100">
             {gifteesWishlist.map(item =>(
                 <li className="wishlist-item "
                     key={item.id}>{item.itemName}</li> 
-                    
             ))}
         </div>
-
-
     </div>
     <div style={{ width: "100%", maxWidth: 500, margin: "0 auto" }}>
         <h2 className="text-center mb-4">
@@ -100,11 +115,11 @@ const WishList = ()=> {
         <div>
             <form onSubmit={e => {
                 e.preventDefault();
-                if (!gifterId) {
+                if (!memberId) {
                     alert("No gifterId provided!");
                     return;
                 }
-                handleAddWishSubmit(gifterId)}}>
+                handleAddWishSubmit(memberId)}}>
                 <input 
                 placeholder="Your wish here..." type="text" required
                 onChange={e => setItem(e.target.value)}
